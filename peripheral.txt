@@ -1,0 +1,78 @@
+import { Component, OnInit, NgZone } from '@angular/core';
+import { AlertController, ToastController, NavController } from '@ionic/angular'
+import { Router } from '@angular/router';
+import { BLE } from '@ionic-native/ble/ngx';
+import { NavigationExtras } from '@angular/router';
+
+//bluetooth uuid's
+// const BLE_HEART_SERVICE = '0000aaaa0-0000-1000-8000-aabbccddeeff';
+@Component({
+  selector: 'app-peripherals',
+  templateUrl: './peripherals.page.html',
+  styleUrls: ['./peripherals.page.scss'],
+})
+export class PeripheralsPage implements OnInit {
+  [x: string]: any;
+  numberofDevices: any
+
+  constructor(
+    public navCtrl: NavController,
+    private alertCtrl: AlertController,
+    private toastCtrl: ToastController,
+    private router: Router,
+    private ble: BLE,
+    private ngzone: NgZone
+  ) { }
+
+  ngOnInit() {
+  }
+  device_list: any[];
+
+  scan() {
+
+    this.device_list = [];
+    this.ble.scan([], 5).subscribe(
+      device => this.onDeviceDiscovered(device),
+      error => this.scanError(error));
+  }
+
+  // If location permission is denied, you'll end up here
+  async scanError(error) {
+    this.setStatus('Error ' + error);
+    let toast = await this.toastCtrl.create({
+      message: 'Error scanning for Bluetooth low energy devices',
+      position: 'middle',
+      duration: 5000
+    });
+    toast.present();
+  }
+  setStatus(message) {
+    console.log(message);
+    this.ngZone.run(() => {
+      this.statusMessage = message;
+    });
+  }
+
+  onDeviceDiscovered(device) {
+    console.log('discovered' + JSON.stringify(device, null, 2));
+    this.ngzone.run(() => {
+      device['advertising'] = new Uint8Array(device.advertising)
+      device['service'] = new Uint8Array(device.advertising)
+      this.device_list.push(device);
+      this.numberOfDevices = this.device_list.length
+      console.log(device['advertising'])
+      console.log('-------------')
+      console.log(device["service"])
+    })
+  }
+
+  deviceSelected(device) {
+    console.log(JSON.stringify(device) + ' selected');
+    let navigationExtras: NavigationExtras = {
+      queryParams: {
+        special: JSON.stringify(device)
+      }
+    };
+    this.router.navigate(['detail'], navigationExtras);
+  }
+}
